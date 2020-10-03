@@ -1,3 +1,7 @@
+jwt:
+  secret: '[a-zA-Z0-9._]^+$Guidelines898979799887AlphabeticArraNumeralotherSymbol$'
+
+
 server:
   port: 8080
 
