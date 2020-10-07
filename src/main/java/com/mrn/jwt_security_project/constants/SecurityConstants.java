@@ -12,6 +12,7 @@ public class SecurityConstants {
     public static final String ACCESS_DENIED_MESSAGE = "You do not have permission to access this page";
     public static final String OPTIONS_HTTP_METHOD = "OPTIONS";
     // /* matches only a part of the section where /** matches all parts of the url
-    public static final String[] PUBLIC_URLS = {"/user/login", "/user/register", "/user/resetpassword/**", "/user/image/**"};
+    // public static final String[] PUBLIC_URLS = {"/user/login", "/user/register", "/user/resetpassword/**", "/user/image/**"};
+    public static final String[] PUBLIC_URLS = {"**"};
 
 }

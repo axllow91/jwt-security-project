@@ -4,6 +4,9 @@ jwt:
 
 server:
   port: 8080
+#  error:
+#    whitelabel:
+#      enabled: false
 
 spring:
   datasource:
@@ -18,3 +21,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
+#  # throw the exception if no handler is found
+#  # and do not register it
+#  mvc:
+#    throw-exception-if-no-handler-found: true
+#  resources:
+#    add-mappings: false
