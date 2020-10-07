@@ -1,9 +1,6 @@
 package com.mrn.jwt_security_project.filter;
 
-import com.google.common.net.HttpHeaders;
-import com.mrn.jwt_security_project.constants.SecurityConstants;
-import com.mrn.jwt_security_project.utility.JwtTokenProvider;
-import org.springframework.http.HttpStatus;
+import com.mrn.jwt_security_project.utility.JWTTokenProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,43 +14,35 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
-// This filter is going to fire a new request and is going to fire once
+import static com.mrn.jwt_security_project.constant.SecurityConstant.*;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpStatus.OK;
+
 @Component
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
+    private JWTTokenProvider jwtTokenProvider;
 
-    private JwtTokenProvider jwtTokenProvider;
-
-    public JwtAuthorizationFilter(JwtTokenProvider jwtTokenProvider) {
+    public JwtAuthorizationFilter(JWTTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
-    // this methods is called every time a request was called
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-
-        if (request.getMethod().equalsIgnoreCase(SecurityConstants.OPTIONS_HTTP_METHOD)) {
-            response.setStatus(HttpStatus.OK.value());
-
+        if (request.getMethod().equalsIgnoreCase(OPTIONS_HTTP_METHOD)) {
+            response.setStatus(OK.value());
         } else {
-            String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-            if (authorizationHeader == null || !authorizationHeader.startsWith(SecurityConstants.TOKEN_PREFIX)) {
+            String authorizationHeader = request.getHeader(AUTHORIZATION);
+            if (authorizationHeader == null || !authorizationHeader.startsWith(TOKEN_PREFIX)) {
                 filterChain.doFilter(request, response);
                 return;
             }
-
-            // get the token
-
-            // get the sub string after the prefix that exists in the string
-            String token = authorizationHeader.substring(SecurityConstants.TOKEN_PREFIX.length());
+            String token = authorizationHeader.substring(TOKEN_PREFIX.length());
             String username = jwtTokenProvider.getSubject(token);
-
-            if (jwtTokenProvider.isTokenValid(username, token)
-                    && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (jwtTokenProvider.isTokenValid(username, token) && SecurityContextHolder.getContext().getAuthentication() == null) {
                 List<GrantedAuthority> authorities = jwtTokenProvider.getAuthorities(token);
                 Authentication authentication = jwtTokenProvider.getAuthentication(username, authorities, request);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } else {
-                // if everything fails clear the context
                 SecurityContextHolder.clearContext();
             }
         }
