@@ -5,30 +5,31 @@ import org.springframework.http.HttpStatus;
 
 import java.util.Date;
 
-/*
- * code: 200,
- * httpStatus: OK
- * reason: OK
- * message: Here you can add your message -> "Your request was successfully"
- *
- * */
 public class HttpResponse {
-    private int httpStatusCode; // like 200, 201, 400 - file not found, url, 500 -server error
-    private HttpStatus httpStatus;
-    private String reason; // reason phrase like httpstatus: 200, phrase: ok
-    private String message; // message that you want to return
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy hh:mm:ss", timezone = "Europe/Bucharest")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM-dd-yyyy hh:mm:ss", timezone = "America/New_York")
     private Date timeStamp;
+    private int httpStatusCode; // 200, 201, 400, 500
+    private HttpStatus httpStatus;
+    private String reason;
 
-    public HttpResponse() {
-    }
+    private String message;
+
+    public HttpResponse() {}
 
     public HttpResponse(int httpStatusCode, HttpStatus httpStatus, String reason, String message) {
+        this.timeStamp = new Date();
         this.httpStatusCode = httpStatusCode;
         this.httpStatus = httpStatus;
         this.reason = reason;
         this.message = message;
-        this.timeStamp = new Date();
+    }
+
+    public Date getTimeStamp() {
+        return timeStamp;
+    }
+
+    public void setTimeStamp(Date timeStamp) {
+        this.timeStamp = timeStamp;
     }
 
     public int getHttpStatusCode() {
@@ -61,13 +62,5 @@ public class HttpResponse {
 
     public void setMessage(String message) {
         this.message = message;
-    }
-
-    public Date getTimeStamp() {
-        return timeStamp;
-    }
-
-    public void setTimeStamp(Date timeStamp) {
-        this.timeStamp = timeStamp;
     }
 }
