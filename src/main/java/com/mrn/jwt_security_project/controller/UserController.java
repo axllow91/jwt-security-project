@@ -1,6 +1,5 @@
 package com.mrn.jwt_security_project.controller;
 
-
 import com.mrn.jwt_security_project.domain.User;
 import com.mrn.jwt_security_project.domain.UserPrincipal;
 import com.mrn.jwt_security_project.exception.ExceptionHandling;
@@ -37,6 +36,12 @@ public class UserController extends ExceptionHandling {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
+    @PostMapping("/register")
+    public ResponseEntity<User> register(@RequestBody User user) throws UserNotFoundException, UsernameExistException, EmailExistException {
+        User newUser = userService.register(user.getFirstName(), user.getLastName(), user.getUsername(), user.getEmail());
+        return new ResponseEntity<>(newUser, OK);
+    }
+
     @PostMapping("/login")
     public ResponseEntity<User> login(@RequestBody User user) {
         authenticate(user.getUsername(), user.getPassword());
@@ -44,12 +49,6 @@ public class UserController extends ExceptionHandling {
         UserPrincipal userPrincipal = new UserPrincipal(loginUser);
         HttpHeaders jwtHeader = getJwtHeader(userPrincipal);
         return new ResponseEntity<>(loginUser, jwtHeader, OK);
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user) throws UserNotFoundException, UsernameExistException, EmailExistException {
-        User newUser = userService.register(user.getFirstName(), user.getLastName(), user.getUsername(), user.getEmail());
-        return new ResponseEntity<>(newUser, OK);
     }
 
     private HttpHeaders getJwtHeader(UserPrincipal user) {
