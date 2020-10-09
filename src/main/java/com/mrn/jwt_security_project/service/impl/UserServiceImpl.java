@@ -93,17 +93,20 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
     @Override
     public User register(String firstName, String lastName, String username, String email) throws UserNotFoundException, UsernameExistException, EmailExistException {
+
         validateNewUsernameAndEmail(EMPTY, username, email);
+
         User user = new User();
+
         user.setUserId(generateUserId());
         String password = generatePassword();
-        String encodedPassword = encodePassword(password);
+
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setUsername(username);
         user.setEmail(email);
         user.setJoinDate(new Date());
-        user.setPassword(encodedPassword);
+        user.setPassword(encodePassword(password));
         user.setActive(true);
         user.setNotLocked(true);
         user.setRole(ROLE_USER.name());
@@ -139,7 +142,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         User user = new User();
         String password = generatePassword();
-        String encodedPassword = encodePassword(password);
 
         user.setUserId(generateUserId());
         user.setFirstName(firstName);
@@ -147,7 +149,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         user.setJoinDate(new Date());
         user.setUsername(username);
         user.setEmail(email);
-        user.setPassword(encodedPassword);
+        user.setPassword(encodePassword(password));
         user.setActive(isActive);
         user.setNotLocked(isNonLocked);
         user.setRole(getRoleEnumName(role).name());
@@ -209,7 +211,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         currentUser.setActive(isActive);
         currentUser.setNotLocked(isNonLocked);
         currentUser.setRole(getRoleEnumName(role).name());
-
 
         userRepository.save(currentUser);
 
