@@ -166,26 +166,20 @@ public class UserController extends ExceptionHandling {
         return null;
     }
 
-    @GetMapping(path = "/image/{profile}/{username}", produces = IMAGE_JPEG_VALUE)
-    public byte[] getTempProfileImage(@PathVariable("username") String username) {
+    @GetMapping(path = "/image/profile/{username}", produces = IMAGE_JPEG_VALUE)
+    public byte[] getTempProfileImage(@PathVariable("username") String username) throws IOException {
 
-        URL url = null; // https://robobash.org/{username}
+        URL url = url = new URL(TEMP_PROFILE_IMAGE_BASE_URL + username); // https://robobash.org/{username}
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
-        try {
-            url = new URL(TEMP_PROFILE_IMAGE_BASE_URL + username);
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            InputStream inputStream = url.openStream();
+        try (InputStream inputStream = url.openStream()) {
             int bytesRead;
             byte[] chunk = new byte[1024]; // 10 MB
             while ((bytesRead = inputStream.read(chunk)) > 0) {
                 byteArrayOutputStream.write(chunk, 0, bytesRead);
             }
-            return byteArrayOutputStream.toByteArray();
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-        return null;
+        return byteArrayOutputStream.toByteArray();
     }
 
     private HttpHeaders getJwtHeader(UserPrincipal user) {
