@@ -183,16 +183,17 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             Files.copy(profileImage.getInputStream(),
                     userFolder.resolve(user.getUsername() + DOT + JPG_EXTENSION), REPLACE_EXISTING);
             user.setProfileImageUrl(setProfileImageUrl(user.getUsername()));
-            
+
             userRepository.save(user);
-            
+
             LOGGER.info(FILE_SAVED_IN_FILE_SYSTEM + profileImage.getOriginalFilename());
         }
     }
 
     private String setProfileImageUrl(String username) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path(USER_IMAGE_PATH + username + FORWARD_SLASH + DOT + JPG_EXTENSION).toUriString();
+        return ServletUriComponentsBuilder.fromCurrentContextPath().path(USER_IMAGE_PATH + username + FORWARD_SLASH
+                + username + DOT + JPG_EXTENSION).toUriString();
+
     }
 
 
@@ -211,9 +212,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         currentUser.setActive(isActive);
         currentUser.setNotLocked(isNonLocked);
         currentUser.setRole(getRoleEnumName(role).name());
+        currentUser.setAuthorities(getRoleEnumName(role).getAuthorities());
 
         userRepository.save(currentUser);
-
         saveProfileImage(currentUser, profileImage);
 
         return currentUser;

@@ -121,7 +121,7 @@ public class UserController extends ExceptionHandling {
         return new ResponseEntity<>(users, OK);
     }
 
-    @GetMapping("/resetPassword/{email}")
+    @GetMapping("/user/{email}")
     public ResponseEntity<HttpResponse> resetPassword(@PathVariable("email") String email) throws EmailNotFoundException {
         userService.resetPassword(email);
         return response(OK, EMAIL_SENT + email);
