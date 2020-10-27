@@ -4,10 +4,7 @@ import com.mrn.jwt_security_project.domain.HttpResponse;
 import com.mrn.jwt_security_project.domain.User;
 import com.mrn.jwt_security_project.domain.UserPrincipal;
 import com.mrn.jwt_security_project.exception.ExceptionHandling;
-import com.mrn.jwt_security_project.exception.domain.EmailExistException;
-import com.mrn.jwt_security_project.exception.domain.EmailNotFoundException;
-import com.mrn.jwt_security_project.exception.domain.UserNotFoundException;
-import com.mrn.jwt_security_project.exception.domain.UsernameExistException;
+import com.mrn.jwt_security_project.exception.domain.*;
 import com.mrn.jwt_security_project.service.UserService;
 import com.mrn.jwt_security_project.utility.JWTTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,7 +70,7 @@ public class UserController extends ExceptionHandling {
                                            @RequestParam("role") String role,
                                            @RequestParam("isActive") String isActive,
                                            @RequestParam("isNonLocked") String isNonLocked,
-                                           @RequestParam(value = "profileImage", required = false) MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+                                           @RequestParam(value = "profileImage", required = false) MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
 
         User newUser = userService.addNewUser(firstName, lastName, username, email, role,
                 Boolean.parseBoolean(isActive),
@@ -95,7 +92,7 @@ public class UserController extends ExceptionHandling {
             @RequestParam("role") String role,
             @RequestParam("isActive") String isActive,
             @RequestParam("isNonLocked") String isNonLocked,
-            @RequestParam(value = "profileImage", required = false) MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+            @RequestParam(value = "profileImage", required = false) MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
 
         User updatedUser = userService.updateUser(currentUsername, firstName, lastName, username, email, role,
                 Boolean.parseBoolean(isActive),
@@ -121,26 +118,26 @@ public class UserController extends ExceptionHandling {
         return new ResponseEntity<>(users, OK);
     }
 
-    @GetMapping("/resetPassword/{email}")
+    @GetMapping("/user/resetpassword/{email}")
     public ResponseEntity<HttpResponse> resetPassword(@PathVariable("email") String email) throws EmailNotFoundException {
         userService.resetPassword(email);
         return response(OK, EMAIL_SENT + email);
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/delete/{username}")
     @PreAuthorize("hasAuthority('user:delete')")
     // it means that for you to delete you need to be a super user (admin), see Authority class
-    public ResponseEntity<HttpResponse> deleteUser(@PathVariable("id") Long id) {
+    public ResponseEntity<HttpResponse> deleteUser(@PathVariable("username") String username) throws IOException {
 
-        userService.deleteUser(id);
-        return response(NO_CONTENT, USER_DELETED_SUCCESSFULLY);
+        userService.deleteUser(username);
+        return response(OK, USER_DELETED_SUCCESSFULLY);
     }
 
     @PostMapping("/updateProfileImage")
     public ResponseEntity<User> updateProfileImage(
             @RequestParam("username") String username,
             @RequestParam(value = "profileImage") MultipartFile profileImage)
-            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
 
         User user = userService.updateProfileImage(username, profileImage);
 
@@ -156,36 +153,22 @@ public class UserController extends ExceptionHandling {
 
     // image returns an array of bytes
     @GetMapping(path = "/image/{username}/{fileName}", produces = IMAGE_JPEG_VALUE)
-    public byte[] getProfileImage(@PathVariable("username") String username, @PathVariable("fileName") String fileName) {
-        try {
-            return Files.readAllBytes(Paths.get(USER_FOLDER + username + FORWARD_SLASH + fileName));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return null;
+    public byte[] getProfileImage(@PathVariable("username") String username, @PathVariable("fileName") String fileName) throws IOException {
+        return Files.readAllBytes(Paths.get(USER_FOLDER + FORWARD_SLASH + username + FORWARD_SLASH + fileName));
     }
 
-    @GetMapping(path = "/image/{profile}/{username}", produces = IMAGE_JPEG_VALUE)
-    public byte[] getTempProfileImage(@PathVariable("username") String username) {
-
-        URL url = null; // https://robobash.org/{username}
-
-        try {
-            url = new URL(TEMP_PROFILE_IMAGE_BASE_URL + username);
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            InputStream inputStream = url.openStream();
+    @GetMapping(path = "/image/profile/{username}", produces = IMAGE_JPEG_VALUE)
+    public byte[] getTempProfileImage(@PathVariable("username") String username) throws IOException {
+        URL url = new URL(TEMP_PROFILE_IMAGE_BASE_URL + username);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try (InputStream inputStream = url.openStream()) {
             int bytesRead;
-            byte[] chunk = new byte[1024]; // 10 MB
+            byte[] chunk = new byte[1024];
             while ((bytesRead = inputStream.read(chunk)) > 0) {
                 byteArrayOutputStream.write(chunk, 0, bytesRead);
             }
-            return byteArrayOutputStream.toByteArray();
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-        return null;
+        return byteArrayOutputStream.toByteArray();
     }
 
     private HttpHeaders getJwtHeader(UserPrincipal user) {

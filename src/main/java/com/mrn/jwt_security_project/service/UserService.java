@@ -2,10 +2,7 @@ package com.mrn.jwt_security_project.service;
 
 
 import com.mrn.jwt_security_project.domain.User;
-import com.mrn.jwt_security_project.exception.domain.EmailExistException;
-import com.mrn.jwt_security_project.exception.domain.EmailNotFoundException;
-import com.mrn.jwt_security_project.exception.domain.UserNotFoundException;
-import com.mrn.jwt_security_project.exception.domain.UsernameExistException;
+import com.mrn.jwt_security_project.exception.domain.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -23,15 +20,15 @@ public interface UserService {
 
     User addNewUser(String firstName, String lastName, String username,
                     String email, String role, boolean isNonLocked,
-                    boolean isActive, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException;
+                    boolean isActive, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException;
 
     User updateUser(String currentUsername,String newFirstName, String newLastName, String newUsername,
                     String newEmail, String role, boolean isNonLocked,
-                    boolean isActive, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException;
+                    boolean isActive, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException;
 
-    void deleteUser(long id);
+    void deleteUser(String username) throws IOException;
 
     void resetPassword(String email) throws EmailNotFoundException;
 
-    User updateProfileImage(String username, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException;
+    User updateProfileImage(String username, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException;
 }

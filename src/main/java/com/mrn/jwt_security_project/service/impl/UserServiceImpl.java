@@ -4,16 +4,14 @@ package com.mrn.jwt_security_project.service.impl;
 import com.mrn.jwt_security_project.domain.User;
 import com.mrn.jwt_security_project.domain.UserPrincipal;
 import com.mrn.jwt_security_project.enumeration.Role;
-import com.mrn.jwt_security_project.exception.domain.EmailExistException;
-import com.mrn.jwt_security_project.exception.domain.EmailNotFoundException;
-import com.mrn.jwt_security_project.exception.domain.UserNotFoundException;
-import com.mrn.jwt_security_project.exception.domain.UsernameExistException;
+import com.mrn.jwt_security_project.exception.domain.*;
 import com.mrn.jwt_security_project.repository.UserRepository;
 import com.mrn.jwt_security_project.service.EmailService;
 import com.mrn.jwt_security_project.service.LoginAttemptService;
 import com.mrn.jwt_security_project.service.UserService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,10 +25,12 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.transaction.Transactional;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -39,6 +39,7 @@ import static com.mrn.jwt_security_project.constant.UserImplConstant.*;
 import static com.mrn.jwt_security_project.enumeration.Role.ROLE_USER;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.springframework.http.MediaType.*;
 
 @Service
 @Transactional
@@ -136,7 +137,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public User addNewUser(String firstName, String lastName, String username, String email, String role, boolean isNonLocked, boolean isActive, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+    public User addNewUser(String firstName, String lastName, String username, String email, String role, boolean isNonLocked, boolean isActive, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
 
         validateNewUsernameAndEmail(EMPTY, username, email);
 
@@ -168,38 +169,34 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return Role.valueOf(role.toUpperCase());
     }
 
-
-    private void saveProfileImage(User user, MultipartFile profileImage) throws IOException {
-
-        if (profileImage != null) { // user/home/supportportal/user/rikimaru
+    private void saveProfileImage(User user, MultipartFile profileImage) throws IOException, NotAnImageFileException {
+        // do not accept other files then jpeg, png or gif
+        if (profileImage != null) {
+            if (!Arrays.asList(IMAGE_JPEG_VALUE, IMAGE_PNG_VALUE, IMAGE_GIF_VALUE).contains(profileImage.getContentType())) {
+                throw new NotAnImageFileException(profileImage.getOriginalFilename() + NOT_AN_IMAGE_FILE);
+            }
             Path userFolder = Paths.get(USER_FOLDER + user.getUsername()).toAbsolutePath().normalize();
-
             if (!Files.exists(userFolder)) {
                 Files.createDirectories(userFolder);
                 LOGGER.info(DIRECTORY_CREATED + userFolder);
             }
-
             Files.deleteIfExists(Paths.get(userFolder + user.getUsername() + DOT + JPG_EXTENSION));
-            Files.copy(profileImage.getInputStream(),
-                    userFolder.resolve(user.getUsername() + DOT + JPG_EXTENSION), REPLACE_EXISTING);
+            Files.copy(profileImage.getInputStream(), userFolder.resolve(user.getUsername() + DOT + JPG_EXTENSION), REPLACE_EXISTING);
             user.setProfileImageUrl(setProfileImageUrl(user.getUsername()));
-            
             userRepository.save(user);
-            
             LOGGER.info(FILE_SAVED_IN_FILE_SYSTEM + profileImage.getOriginalFilename());
         }
     }
 
     private String setProfileImageUrl(String username) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path(USER_IMAGE_PATH + username + FORWARD_SLASH + DOT + JPG_EXTENSION).toUriString();
+        return ServletUriComponentsBuilder.fromCurrentContextPath().path(USER_IMAGE_PATH + username + FORWARD_SLASH
+                + username + DOT + JPG_EXTENSION).toUriString();
     }
-
 
     @Override
     public User updateUser(String currentUsername, String newFirstName, String newLastName, String newUsername,
                            String newEmail, String role, boolean isNonLocked, boolean isActive,
-                           MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+                           MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
 
         User currentUser = validateNewUsernameAndEmail(currentUsername, newUsername, newEmail);
 
@@ -211,6 +208,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         currentUser.setActive(isActive);
         currentUser.setNotLocked(isNonLocked);
         currentUser.setRole(getRoleEnumName(role).name());
+        currentUser.setAuthorities(getRoleEnumName(role).getAuthorities());
 
         userRepository.save(currentUser);
 
@@ -219,9 +217,16 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return currentUser;
     }
 
+    // when we deleting a user
+    // we need to delete the actual image that the user is using for profile
     @Override
-    public void deleteUser(long id) {
-        userRepository.deleteById(id);
+    public void deleteUser(String username) throws IOException {
+        User user = userRepository.findUserByUsername(username);
+        // get the user folder
+        // delete it by using file utils
+        Path userFolder = Paths.get(USER_FOLDER + user.getUsername()).toAbsolutePath().normalize();
+        FileUtils.deleteDirectory(new File(userFolder.toString()));
+        userRepository.deleteById(user.getId());
     }
 
     @Override
@@ -241,7 +246,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public User updateProfileImage(String username, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+    public User updateProfileImage(String username, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
 
         User user = validateNewUsernameAndEmail(username, null, null);
         saveProfileImage(user, profileImage);
